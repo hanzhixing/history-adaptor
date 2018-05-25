@@ -26,14 +26,21 @@ const linked = link(
 
 historyA = linked['A'];
 historyB = linked['B'];
+const listenCallbackStackA = linked.listenCallbackStackA;
 
-historyA.listen((location, action) => console.log('historyA listen callback1'));
-historyA.listen((location, action) => console.log('historyA listen callback2'));
-historyA.listen((location, action) => console.log('historyA listen callback3'));
+console.log('[A].listen: "[A] -> path"');
+historyA.listen((location, action) => console.log('[A] -> ', location.pathname));
 
-historyB.listen((location, action) => console.log('outer', location, action));
+console.log('[B].listen: "[B] -> path"');
+historyB.listen((location, action) => console.log('[B] -> ', location.pathname));
 
-historyA.push('/123');
-historyA.push('/456');
+console.log('[A].push("/a/1")');
+historyA.push('/a/1');
 
-historyB.push('/yyy');
+// console.log('push [/456] to [A]');
+// historyA.push('/456');
+
+// console.log('push [/yyy] to [B]');
+// historyB.push('/yyy');
+
+console.log(listenCallbackStackA);
