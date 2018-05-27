@@ -8,7 +8,7 @@ window.addEventListener('popstate', event => {
     console.log(event);
 });
 
-let historyA = createMemoryHistory();
+let historyA = createBrowserHistory();
 let historyB = createMemoryHistory();
 
 console.log(historyA, historyB);
@@ -42,6 +42,13 @@ console.log('---');
 
 console.log('[A].push("/a/1")');
 historyA.push('/a/1');
+
+console.log(`A (${historyA.index}/${historyA.length})`);
+console.log(`B (${historyB.index}/${historyB.length})`);
+console.log('---');
+
+console.log('[B].push("/b/100")');
+historyB.push('/b/100');
 
 console.log(`A (${historyA.index}/${historyA.length})`);
 console.log(`B (${historyB.index}/${historyB.length})`);
