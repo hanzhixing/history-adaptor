@@ -26,7 +26,7 @@ export default [
         },
         to: {
             key: 'A',
-            pattern: '/a/1',
+            pattern: '/a/11',
         },
     },
     {
@@ -36,7 +36,7 @@ export default [
         },
         to: {
             key: 'A',
-            pattern: '/a/1',
+            pattern: '/a/12',
         },
     },
 ];

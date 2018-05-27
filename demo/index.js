@@ -11,6 +11,8 @@ window.addEventListener('popstate', event => {
 let historyA = createMemoryHistory();
 let historyB = createMemoryHistory();
 
+console.log(historyA, historyB);
+
 const linked = link(
     rules,
     {key: 'A', history: historyA},
