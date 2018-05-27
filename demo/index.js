@@ -49,8 +49,8 @@ console.log(`A (${historyA.index}/${historyA.length})`);
 console.log(`B (${historyB.index}/${historyB.length})`);
 console.log('---');
 
-console.log('[A].push("/a/2")');
-historyA.push('/a/2');
+console.log('[A].replace("/a/2")');
+historyA.replace('/a/2');
 
 console.log(`A (${historyA.index}/${historyA.length})`);
 console.log(`B (${historyB.index}/${historyB.length})`);
