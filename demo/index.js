@@ -30,11 +30,8 @@ const linked = link(
 historyA = linked['A'];
 historyB = linked['B'];
 
-console.log('---');
-
-console.log(historyA);
-console.log(historyB);
-
+console.log(`A (${historyA.index}/${historyA.length})`);
+console.log(`B (${historyB.index}/${historyB.length})`);
 console.log('---');
 
 console.log('[A].listen: "[A] -> locatin, action"');
@@ -48,52 +45,90 @@ console.log('---');
 console.log('[A].push("/a/1")');
 historyA.push('/a/1');
 
+console.log(`A (${historyA.index}/${historyA.length})`);
+console.log(`B (${historyB.index}/${historyB.length})`);
 console.log('---');
 
 console.log('[A].push("/a/2")');
 historyA.push('/a/2');
 
-console.log('---');
-
-console.log('[B].push("/b/1")');
-historyB.push('/b/1');
-
-console.log('---');
-
-console.log('[B].push("/b/2")');
-historyB.push('/b/2');
-
+console.log(`A (${historyA.index}/${historyA.length})`);
+console.log(`B (${historyB.index}/${historyB.length})`);
 console.log('---');
 
 console.log('[A].push("/a/3")');
 historyA.push('/a/3');
 
+console.log(`A (${historyA.index}/${historyA.length})`);
+console.log(`B (${historyB.index}/${historyB.length})`);
 console.log('---');
 
 console.log('[A].push("/a/4")');
 historyA.push('/a/4');
 
-console.log('---');
-
-console.log('[A].push("/a/5")');
-historyA.push('/a/5');
-
+console.log(`A (${historyA.index}/${historyA.length})`);
+console.log(`B (${historyB.index}/${historyB.length})`);
 console.log('---');
 
 console.log('try go(-1)');
 historyA.go(-1);
 
+console.log(`A (${historyA.index}/${historyA.length})`);
+console.log(`B (${historyB.index}/${historyB.length})`);
+console.log('---');
+
+console.log('try goBack()');
+historyA.goBack();
+
+console.log(`A (${historyA.index}/${historyA.length})`);
+console.log(`B (${historyB.index}/${historyB.length})`);
+console.log('---');
+
+console.log('try goForward()');
+historyA.goForward();
+
+console.log(`A (${historyA.index}/${historyA.length})`);
+console.log(`B (${historyB.index}/${historyB.length})`);
 console.log('---');
 
 console.log('try go(-1)');
 historyA.go(-1);
 
+console.log(`A (${historyA.index}/${historyA.length})`);
+console.log(`B (${historyB.index}/${historyB.length})`);
 console.log('---');
 
 console.log('try go(-1)');
 historyA.go(-1);
 
+console.log(`A (${historyA.index}/${historyA.length})`);
+console.log(`B (${historyB.index}/${historyB.length})`);
 console.log('---');
 
 console.log('try go(-1)');
 historyA.go(-1);
+
+console.log(`A (${historyA.index}/${historyA.length})`);
+console.log(`B (${historyB.index}/${historyB.length})`);
+console.log('---');
+
+console.log('try go(-1)');
+historyA.go(-1);
+
+console.log(`A (${historyA.index}/${historyA.length})`);
+console.log(`B (${historyB.index}/${historyB.length})`);
+console.log('---');
+
+console.log('[B].push("/b/1")');
+historyB.push('/b/1');
+
+console.log(`A (${historyA.index}/${historyA.length})`);
+console.log(`B (${historyB.index}/${historyB.length})`);
+console.log('---');
+
+console.log('[B].push("/b/2")');
+historyB.push('/b/2');
+
+console.log(`A (${historyA.index}/${historyA.length})`);
+console.log(`B (${historyB.index}/${historyB.length})`);
+console.log('---');
