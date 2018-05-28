@@ -1,26 +1,45 @@
 import createBrowserHistory from 'history/createBrowserHistory';
 import createMemoryHistory from 'history/createMemoryHistory';
 import createHashHistory from 'history/createHashHistory';
-import {link} from '../lib';
+import {connect} from '../lib';
 import rules from './rules';
+
+const createAdapt = (rules = rules) => sourceKey => path => {
+    const matched = rules
+        .filter(rule => ((rule.from.key === sourceKey) && (rule.from.pattern === path)))
+        .map(rule => rule.to.pattern);
+
+    if (matched.length > 0) {
+        return matched[0];
+    }
+
+    return undefined;
+};
 
 window.addEventListener('popstate', event => {
     console.log(event);
 });
 
-let historyA = createBrowserHistory();
-let historyB = createMemoryHistory();
-
-console.log(historyA, historyB);
-
-const linked = link(
-    rules,
-    {key: 'A', history: historyA},
-    {key: 'B', history: historyB},
+const [historyA, historyB] = connect(
+    [
+        {
+            key: 'A',
+            history: [createMemoryHistory, {}],
+            adapt: [
+                createAdapt(rules)('A'),
+            ],
+        },
+    ],
+    [
+        {
+            key: 'B',
+            history: [createMemoryHistory, {}],
+            adapt: [
+                createAdapt(rules)('B'),
+            ],
+        },
+    ],
 );
-
-historyA = linked['A'];
-historyB = linked['B'];
 
 console.log(`A (${historyA.index}/${historyA.length})`);
 console.log(`B (${historyB.index}/${historyB.length})`);
