@@ -4,6 +4,11 @@ import createHashHistory from 'history/createHashHistory';
 import {connect} from '../lib';
 import rules from './rules';
 
+window.addEventListener('popstate', event => {
+    const {pathname, search, hash} = event.target.location;
+    console.log('popstate', pathname, search, hash);
+});
+
 const createAdaptOf = sourceKey => location => {
     const matched = rules
         .filter(rule => {
@@ -24,10 +29,6 @@ const createAdaptOf = sourceKey => location => {
     return undefined;
 };
 
-window.addEventListener('popstate', event => {
-    console.log('popstate', event.target);
-});
-
 const [historyA, historyB] = connect(
     [
         {
@@ -45,8 +46,8 @@ const [historyA, historyB] = connect(
             history: [createMemoryHistory, {}],
             adaptors: [
                 {
-                    target: 'B',
-                    adapt: createAdaptOf('A'),
+                    target: 'A',
+                    adapt: createAdaptOf('B'),
                 },
             ],
         },
@@ -55,115 +56,140 @@ const [historyA, historyB] = connect(
 
 console.log(historyA, historyB);
 
-console.log('---');
-
-console.log('[A].listen: "[A] 1-> locatin.pathname, action"');
+console.log('[A].listen1');
 historyA.listen((location, action) => {
     console.log(
         '[A] 1-> ',
         location.pathname,
+        location.search,
+        location.hash,
         action,
         historyA.length,
         historyA.index,
     );
 });
 
-console.log('[A].listen: "[A] 2-> locatin.pathname, action"');
+console.log('[A].listen2');
 historyA.listen((location, action) => {
     console.log(
         '[A] 2-> ',
         location.pathname,
+        location.search,
+        location.hash,
         action,
         historyA.length,
         historyA.index,
     );
 });
 
-console.log('[B].listen: "[B] 1-> location.pathname, action"');
+console.log('[B].listen1');
 historyB.listen((location, action) => {
     console.log(
         '[B] 1-> ',
         location.pathname,
+        location.search,
+        location.hash,
         action,
         historyB.length,
         historyB.index,
     );
 });
 
-console.log('[B].listen: "[B] 2-> location.pathname, action"');
+console.log('[B].listen2');
 historyB.listen((location, action) => {
     console.log(
         '[B] 2-> ',
         location.pathname,
+        location.search,
+        location.hash,
         action,
         historyB.length,
         historyB.index,
     );
 });
 
-console.log('---');
+window.setTimeout(() => {
+    console.log('---');
+    console.log('[A].push("/a/1")');
+    historyA.push('/a/1');
+}, 200);
 
-console.log('[A].push("/a/1")');
-historyA.push('/a/1');
+window.setTimeout(() => {
+    console.log('---');
+    console.log('[B].push("/b/1")');
+    historyB.push('/b/1');
+}, 200);
 
-console.log('---');
+window.setTimeout(() => {
+    console.log('---');
+    console.log('[B].push("/b/100")');
+    historyB.push('/b/100');
+}, 200);
 
-console.log('[B].push("/b/100")');
-historyB.push('/b/100');
 
-console.log('---');
+window.setTimeout(() => {
+    console.log('---');
+    console.log('[A].replace("/a/2")');
+    historyA.replace('/a/2');
+}, 200);
 
-console.log('[A].replace("/a/2")');
-historyA.replace('/a/2');
+window.setTimeout(() => {
+    console.log('---');
+    console.log('[A].push("/a/3?x=y#asfadfaa")');
+    historyA.push('/a/3?x=y#asfadfaa');
+}, 200);
 
-console.log('---');
+window.setTimeout(() => {
+    console.log('---');
+    console.log('[A].push("/a/4")');
+    historyA.push('/a/4');
+}, 200);
 
-console.log('[A].push("/a/3")');
-historyA.push('/a/3');
+window.setTimeout(() => {
+    console.log('---');
+    console.log('try go(-1)');
+    historyA.go(-1);
+}, 200);
 
-console.log('---');
 
-console.log('[A].push("/a/4")');
-historyA.push('/a/4');
+window.setTimeout(() => {
+    console.log('---');
+    console.log('try goBack()');
+    historyA.goBack();
+}, 200);
 
-console.log('---');
+window.setTimeout(() => {
+    console.log('---');
+    console.log('try goForward()');
+    historyA.goForward();
+}, 200);
 
-console.log('try go(-1)');
-historyA.go(-1);
+window.setTimeout(() => {
+    console.log('---');
+    console.log('try go(-1)');
+    historyA.go(-1);
+}, 200);
 
-console.log('---');
+window.setTimeout(() => {
+    console.log('---');
+    console.log('try go(-1)');
+    historyA.go(-1);
+}, 200);
 
-console.log('try goBack()');
-historyA.goBack();
+window.setTimeout(() => {
+    console.log('---');
+    console.log('try go(-1)');
+    historyA.go(-1);
+}, 200);
 
-console.log('---');
+window.setTimeout(() => {
+    console.log('---');
+    console.log('[B].push("/b/1")');
+    historyB.push('/b/1');
+}, 200);
 
-console.log('try goForward()');
-historyA.goForward();
-
-console.log('---');
-
-console.log('try go(-1)');
-historyA.go(-1);
-
-console.log('---');
-
-console.log('try go(-1)');
-historyA.go(-1);
-
-console.log('---');
-
-console.log('try go(-1)');
-historyA.go(-1);
-
-console.log('---');
-
-console.log('[B].push("/b/1")');
-historyB.push('/b/1');
-
-console.log('---');
-
-console.log('[B].push("/b/2")');
-historyB.push('/b/2');
-
-console.log('---');
+window.setTimeout(() => {
+    console.log('---');
+    console.log('[B].push("/b/2")');
+    historyB.push('/b/2');
+}, 200);
