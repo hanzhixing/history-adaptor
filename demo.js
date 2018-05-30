@@ -1,8 +1,20 @@
 import createBrowserHistory from 'history/createBrowserHistory';
 import createMemoryHistory from 'history/createMemoryHistory';
 import createHashHistory from 'history/createHashHistory';
-import {connect} from '../lib';
-import rules from './rules';
+import {connect} from './dist';
+
+const sleep = ms => (new Promise(resolve => setTimeout(resolve, ms)));
+
+const rules = [
+    // to same path of target
+    {from: {key: 'A', pattern: '/123/456'}, to: {key: 'B', pattern: '/abc/def'}},
+    {from: {key: 'A', pattern: '/345/678'}, to: {key: 'B', pattern: '/abc/def'}},
+    // opposite
+    {from: {key: 'B', pattern: '/ijk/lmn'}, to: {key: 'A', pattern: '/456/789'}},
+    // maybe infinte
+    {from: {key: 'A', pattern: '/777/888'}, to: {key: 'B', pattern: '/xxx/yyy'}},
+    {from: {key: 'B', pattern: '/xxx/yyy'}, to: {key: 'A', pattern: '/777/888'}},
+];
 
 window.addEventListener('popstate', event => {
     const {pathname, search, hash} = event.target.location;
@@ -56,140 +68,109 @@ const [historyA, historyB] = connect(
 
 console.log(historyA, historyB);
 
-console.log('[A].listen1');
 historyA.listen((location, action) => {
-    console.log(
-        '[A] 1-> ',
+    console.log([
+        'listenA1',
         location.pathname,
         location.search,
         location.hash,
         action,
         historyA.length,
         historyA.index,
-    );
+    ].join('    '));
 });
 
-console.log('[A].listen2');
 historyA.listen((location, action) => {
-    console.log(
-        '[A] 2-> ',
+    console.log([
+        'listenA2',
         location.pathname,
         location.search,
         location.hash,
         action,
         historyA.length,
         historyA.index,
-    );
+    ].join('    '));
 });
 
-console.log('[B].listen1');
 historyB.listen((location, action) => {
-    console.log(
-        '[B] 1-> ',
+    console.log([
+        'listenB1',
         location.pathname,
         location.search,
         location.hash,
         action,
-        historyB.length,
-        historyB.index,
-    );
+        historyA.length,
+        historyA.index,
+    ].join('    '));
 });
 
-console.log('[B].listen2');
 historyB.listen((location, action) => {
-    console.log(
-        '[B] 2-> ',
+    console.log([
+        'listenB2',
         location.pathname,
         location.search,
         location.hash,
         action,
-        historyB.length,
-        historyB.index,
-    );
+        historyA.length,
+        historyA.index,
+    ].join('    '));
 });
 
-window.setTimeout(() => {
+const demo = async () => {
+    await sleep(200);
     console.log('---');
-    console.log('[A].push("/a/1")');
-    historyA.push('/a/1');
-}, 200);
+    console.log("historyA.push('/123/456') expect historyB.push('/abc/def')");
+    historyA.push('/123/456');
 
-window.setTimeout(() => {
+    await sleep(200);
     console.log('---');
-    console.log('[B].push("/b/1")');
-    historyB.push('/b/1');
-}, 200);
+    console.log("historyB.push('/ijk/lmn') expect historyA.push('/456/789')");
+    historyB.push('/ijk/lmn');
 
-window.setTimeout(() => {
+    await sleep(200);
     console.log('---');
-    console.log('[B].push("/b/100")');
-    historyB.push('/b/100');
-}, 200);
+    console.log("historyA.push('/fed/cba') expect no historyB.push");
+    historyA.push('/fed/cba');
 
-
-window.setTimeout(() => {
+    await sleep(200);
     console.log('---');
-    console.log('[A].replace("/a/2")');
-    historyA.replace('/a/2');
-}, 200);
+    console.log("historyA.push('/fed/cba?arg1=val1&arg2=val2#the-hash-part') expect 'search' and 'hash'");
+    historyA.push('/fed/cba?arg1=val1&arg2=val2#the-hash-part');
 
-window.setTimeout(() => {
+    await sleep(200);
     console.log('---');
-    console.log('[A].push("/a/3?x=y#asfadfaa")');
-    historyA.push('/a/3?x=y#asfadfaa');
-}, 200);
+    console.log("historyA.replace('/345/678') expect historyB.replace('/abc/def')");
+    historyA.replace('/345/678');
 
-window.setTimeout(() => {
+    await sleep(200);
     console.log('---');
-    console.log('[A].push("/a/4")');
-    historyA.push('/a/4');
-}, 200);
-
-window.setTimeout(() => {
-    console.log('---');
-    console.log('try go(-1)');
+    console.log("historyA.go(-1) expect historyB.go(-1)");
     historyA.go(-1);
-}, 200);
 
-
-window.setTimeout(() => {
+    await sleep(200);
     console.log('---');
-    console.log('try goBack()');
-    historyA.goBack();
-}, 200);
-
-window.setTimeout(() => {
-    console.log('---');
-    console.log('try goForward()');
+    console.log("historyA.goForward() expect historyB.goForward()");
     historyA.goForward();
-}, 200);
 
-window.setTimeout(() => {
+    await sleep(200);
     console.log('---');
-    console.log('try go(-1)');
-    historyA.go(-1);
-}, 200);
+    console.log("historyA.goBack() expect historyB.goBack()");
+    historyA.goBack();
 
-window.setTimeout(() => {
+    await sleep(200);
     console.log('---');
-    console.log('try go(-1)');
-    historyA.go(-1);
-}, 200);
+    console.log("historyB.goBack() expect historyA.goBack()");
+    historyB.goBack();
 
-window.setTimeout(() => {
+    await sleep(200);
     console.log('---');
-    console.log('try go(-1)');
-    historyA.go(-1);
-}, 200);
+    console.log("historyB.push('/xxx/yyy') expect historyA.push('/777/888')");
+    historyB.push('/xxx/yyy');
 
-window.setTimeout(() => {
+    await sleep(200);
     console.log('---');
-    console.log('[B].push("/b/1")');
-    historyB.push('/b/1');
-}, 200);
+    console.log("historyB.go(-1) expect historyA.go(-1)");
+    historyB.go(-1);
+};
 
-window.setTimeout(() => {
-    console.log('---');
-    console.log('[B].push("/b/2")');
-    historyB.push('/b/2');
-}, 200);
+demo();

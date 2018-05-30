@@ -1,21 +1,19 @@
-const trigger = {
-    key: undefined,
-    history: undefined,
-    method: [],
-};
+let pops = [];
 
 const createAdaptListener = (source, others) => (location, action) => {
-    console.log([
-        '------------------------------',
-        source.key,
-        action,
-        location.pathname,
-    ].join(':'));
-
     if (action !== 'POP') {
         return;
     }
 
+    if (pops.includes(source.key)) {
+        pops = pops.filter(pop => pop !== source.key);
+        return;
+    }
+
+    createPushOrReplaceOfOthers(source, others)(location);
+};
+
+const createPushOrReplaceOfOthers = (source, others, method = 'push') => location => {
     others.forEach(other => {
         source.adaptors.forEach(adaptor => {
             if (adaptor.target !== other.key) {
@@ -25,7 +23,7 @@ const createAdaptListener = (source, others) => (location, action) => {
             if (!targetLocation) {
                 return;
             }
-            other.history.push(targetLocation);
+            other.history[method](targetLocation);
         });
     });
 };
@@ -47,7 +45,7 @@ const createProxyHandlers = (source, others) => ({
 
                     // previous ones
                     listeners = listeners.map(listener => {
-                        console.log(listener.unlisten());
+                        listener.unlisten();
                         return {
                             unlisten: target.listen(listener.fn),
                             fn: listener.fn,
@@ -75,27 +73,16 @@ const createProxyHandlers = (source, others) => ({
             case 'replace': {
                 return (location, state) => {
                     target[property](location, state);
-                    others.forEach(other => {
-                        source.adaptors.forEach(adaptor => {
-                            if (adaptor.target !== other.key) {
-                                return;
-                            }
-                            const targetLocation = adaptor.adapt(location);
-                            if (!targetLocation) {
-                                return;
-                            }
-                            other.history[property](targetLocation);
-                        });
-                    });
+                    createPushOrReplaceOfOthers(source, others, property)(location);
                 };
             }
             case 'go':
             case 'goForward':
             case 'goBack': {
                 return (...args) => {
-                    target[property](...args);
+                    pops.push(source.key) && target[property](...args);
                     others.forEach(other => {
-                        other.history[property](...args);
+                        pops.push(other.key) && other.history[property](...args);
                     });
                 };
             }
