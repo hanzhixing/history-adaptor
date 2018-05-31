@@ -1,6 +1,6 @@
 {
   "name": "history-adaptor",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Adaptor connects two of BrowserHistory, HashHistory and MemoryHistory with custom mapping rules",
   "main": "dist/index.js",
   "scripts": {

@@ -1,5 +1,22 @@
 # history-adaptor
-To use this library, you should know how to use the [history](https://github.com/ReactTraining/history) package.
+To use this library you should know
+
+1. What frontend router is.
+2. How to use the [history](https://github.com/ReactTraining/history) package.
+
+## Why
+1. There are multiple sets of URIs in the real world.
+2. You may not able to decide what your URIs in a set should look like.
+3. URIs are shared resources among clients. (Considering browser Bookmarks or programs ships your URIs in their code)
+4. URIs are references to different app views.
+5. The structure of an application could more or less decide what your URIs look like.
+6. URIs those reflect app structure are not always able to affect your browser address bar.
+7. The structure of an application may change frequently, which may cause routes change as well.
+8. We may integrate with multiple sub applications, and the routes of them may have already been hardcoded.
+9. Do you want to keep the paths in the routes always clean?
+
+## Solution
+Seperate different sets of URIs and connect them with others loosly, by following the desired rules.
 
 ## Installation
 ```bash
@@ -8,28 +25,18 @@ npm install --save history-adaptor
 
 ## How to use
 
-### 1. import
-```javascript
-import createHashHistory from 'history/createBrowserHistory';
-import createMemoryHistory from 'history/createMemoryHistory';
-import {connect} from 'history-adaptor';
-```
-
-### 2. define mapping table
+### 1. define mapping table (not required)
 ```javascript
 const rules = [
-    // to same path of target
-    {from: {key: 'A', pattern: '/123/456'}, to: {key: 'B', pattern: '/abc/def'}},
-    {from: {key: 'A', pattern: '/345/678'}, to: {key: 'B', pattern: '/abc/def'}},
-    // opposite
-    {from: {key: 'B', pattern: '/ijk/lmn'}, to: {key: 'A', pattern: '/456/789'}},
-    // maybe infinte
-    {from: {key: 'A', pattern: '/777/888'}, to: {key: 'B', pattern: '/xxx/yyy'}},
-    {from: {key: 'B', pattern: '/xxx/yyy'}, to: {key: 'A', pattern: '/777/888'}},
+    {from: {key: 'Portal', pattern: '/webapp/main/blog/home'}, to: {key: 'Blog', pattern: '/news'}},
+    {from: {key: 'Portal', pattern: '/webapp/main/blog'}, to: {key: 'Blog', pattern: '/main'}},
+    {from: {key: 'Portal', pattern: '/webapp/main/blog/tags'}, to: {key: 'B', pattern: '/tags'}},
+    {from: {key: 'Blog', pattern: '/news'}, to: {key: 'Portal', pattern: '/webapp/main/blog/home'}},
+    {from: {key: 'Blog', pattern: '/post/11'}, to: {key: 'Portal', pattern: '/webapp/main/blog/post?id=11'}},
 ];
 ```
 
-### 3. create your own url mapping function
+### 2. create your own url mapping function (implement the logic by yourself)
 ```javascript
 const createAdaptOf = sourceKey => location => {
     const matched = rules
@@ -52,35 +59,45 @@ const createAdaptOf = sourceKey => location => {
 };
 ```
 
-### 4. connect the histories with your adapting function
+### 3. connect the histories with your adapting function
 ```javascript
-const [historyA, historyB] = connect(
+// I believe you don't want to connect multiple BrowserHistories, or multiple HashHistories with each other.
+// They munipulates the same thing -> The browser address bar.
+// You can, but you should not.
+import createBrowserHistory from 'history/createBrowserHistory';
+import createMemoryHistory from 'history/createMemoryHistory';
+import {connect} from 'history-adaptor';
+
+const [portalHistory, blogHistory] = connect(          // The order remain the same.
     [
         {
-            key: 'A',                           // Define a key for your source history
-            history: [createMemoryHistory, {}], // You can also provide a history instance instead of the array.
-            adaptors: [                         // Provide the targets to which your URIs adapting to.
+            key: 'Portal',                          // Define a key for your source history
+            history: [createBrowserHistory, {}],    // You can also provide a history instance instead of the array.
+            adaptors: [                             // Provide the targets to which your URIs adapting to.
                 {
-                    target: 'B',                // Define a key for your target history
-                    adapt: createAdaptOf('A'),  // (location) => (location)
+                    target: 'Blog',                 // Define a key for your target history
+                    adapt: createAdaptOf('Portal'), // fn: (location) => (location)
+                    // Pure function which accept a location-like object(or string) then return a new one.
+                    // See history.push(...) on the manual page of 'history' package.
                 },
             ],
         },
         {
-            key: 'B',
+            key: 'Blog',
             history: [createMemoryHistory, {}],
             adaptors: [
                 {
-                    target: 'A',
-                    adapt: createAdaptOf('B'),
+                    target: 'Portal',
+                    adapt: createAdaptOf('Blog'),
                 },
             ],
         },
+        // You can provide more ones
     ],
 );
 ```
 
-### 5. use the histories like you did it before
+### 4. use the histories like you did it before
 ```javascript
 history.push(...);
 history.replace(...);
@@ -91,7 +108,38 @@ history.listen(...);
 ```
 or
 ```javascript
-<Router history={history}>
-  <App/>
-</Router>
+const Blog = (
+  <Router history={blogHistory}>
+    <div>
+      <nav>
+        <ul>
+          <li><Link to="/">Main</Link></li>
+          <li><Link to="/news">News</Link></li>
+          <li><Link to="/tags">Tags</Link></li>
+          <li><Link to="/post/11">One Post</Link></li>
+        </ul>
+      </nav>
+
+      <Route exact path="/" component={Main}/>
+      <Route path="/news" component={News}/>
+      <Route path="/tags" component={Tags}/>
+      <Route path="/post/:id" component={Post}/>
+    </div>
+  </Router>
+);
+
+const Portal = (
+  <Router history={portalHistory}>
+    <div>
+      <ul>
+        <li><Link to="/webpapp/main/home">Home</Link></li>
+        <li><Link to="/webpapp/main/blog">Blog Home</Link></li>
+      </ul>
+
+      <Route exact path="/webpapp/main/home" component={Home}/>
+      <Route path="/webpapp/main/blog" component={Blog}/>
+    </div>
+  </Router>
+);
+
 ```
