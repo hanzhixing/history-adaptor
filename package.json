@@ -1,42 +1,101 @@
 {
-  "name": "history-adaptor",
-  "version": "0.1.1",
-  "description": "Adaptor connects two of BrowserHistory, HashHistory and MemoryHistory with custom mapping rules",
-  "main": "dist/index.js",
-  "scripts": {
-    "start": "webpack-dev-server --open"
-  },
-  "author": "Zhixing Han",
-  "license": "MIT",
-  "devDependencies": {
-    "babel-cli": "^6.26.0",
-    "babel-core": "^6.26.3",
-    "babel-jest": "^23.0.1",
-    "babel-loader": "^7.1.4",
-    "babel-plugin-transform-object-rest-spread": "^6.26.0",
-    "babel-polyfill": "^6.26.0",
-    "babel-preset-env": "^1.7.0",
-    "history": "^4.7.2",
-    "html-webpack-plugin": "^3.2.0",
-    "jest": "^23.0.1",
-    "regenerator-runtime": "^0.11.1",
-    "webpack": "^4.8.3",
-    "webpack-cli": "^2.1.4",
-    "webpack-dev-server": "^3.1.4"
-  },
-  "dependencies": {},
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/hanzhixing/history-adaptor.git"
-  },
-  "keywords": [
-    "react",
-    "router",
-    "react router",
-    "react-router"
-  ],
-  "bugs": {
-    "url": "https://github.com/hanzhixing/history-adaptor/issues"
-  },
-  "homepage": "https://github.com/hanzhixing/history-adaptor#readme"
+    "name": "history-adaptor",
+    "version": "1.0.0",
+    "description": "A framework-agnostic adaptor that connects two routing systems with custom mapping rules",
+    "keywords": [
+        "react",
+        "react router",
+        "react-router",
+        "vue",
+        "vue router",
+        "vue-router",
+        "router",
+        "history",
+        "hash"
+    ],
+    "homepage": "https://github.com/hanzhixing/history-adaptor#readme",
+    "bugs": {
+        "url": "https://github.com/hanzhixing/history-adaptor/issues"
+    },
+    "license": "MIT",
+    "author": "Zhixing Han",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/hanzhixing/history-adaptor.git"
+    },
+    "files": [
+        "dist"
+    ],
+    "type": "module",
+    "sideEffects": false,
+    "main": "./dist/index.cjs",
+    "module": "./dist/index.mjs",
+    "types": "./dist/index.d.mts",
+    "exports": {
+        ".": {
+            "import": {
+                "types": "./dist/index.d.mts",
+                "default": "./dist/index.mjs"
+            },
+            "require": {
+                "types": "./dist/index.d.cts",
+                "default": "./dist/index.cjs"
+            }
+        },
+        "./helper": {
+            "import": {
+                "types": "./dist/helper.d.mts",
+                "default": "./dist/helper.mjs"
+            },
+            "require": {
+                "types": "./dist/helper.d.cts",
+                "default": "./dist/helper.cjs"
+            }
+        }
+    },
+    "scripts": {
+        "build": "tsdown",
+        "dev": "tsdown --watch",
+        "test": "vitest run",
+        "test:watch": "vitest",
+        "typecheck": "tsc --noEmit",
+        "lint": "oxlint",
+        "lint:fix": "oxlint --fix",
+        "format": "oxfmt --write .",
+        "format:check": "oxfmt --check .",
+        "check": "oxlint && tsc --noEmit && vitest run",
+        "prepublishOnly": "pnpm build"
+    },
+    "devDependencies": {
+        "@angular/common": "22.2.5",
+        "@angular/compiler": "22.2.5",
+        "@angular/core": "22.2.5",
+        "@angular/platform-browser": "22.2.5",
+        "@angular/router": "22.2.5",
+        "@arethetypeswrong/core": "^0.18.5",
+        "@solidjs/router": "^1.0.1",
+        "@types/jsdom": "^30.0.0",
+        "@types/node": "^26.6.6",
+        "@types/react": "^19.3.0",
+        "jsdom": "^31.0.0",
+        "oxfmt": "^0.77.0",
+        "oxlint": "^1.92.0",
+        "publint": "^0.3.25",
+        "react": "^19.3.1",
+        "react-router": "^8.5.1",
+        "rxjs": "^7.8.2",
+        "solid-js": "^1.9.18",
+        "tsdown": "^0.23.7",
+        "typescript": "^7.0.2",
+        "vitest": "^5.1.0",
+        "vue": "^3.5.45",
+        "vue-router": "^5.4.0"
+    },
+    "engines": {
+        "node": ">=22"
+    },
+    "dependencies": {
+        "@fedify/uri-template": "^2.4.5",
+        "path-to-regexp": "^9.0.0"
+    }
 }

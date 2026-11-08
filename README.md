@@ -1,10 +1,20 @@
 # history-adaptor
+
+A framework-agnostic adaptor that connects two routing systems with custom mapping rules.
+
+Any two of HTML5 History, hash history, React Router, Vue Router, Angular, Solid, or your own
+router can be the two sides of the adaptor. The core imports no framework: both sides are
+equal (peer to peer, no master/slave). Optional helpers turn the common routers into the
+library's minimal `HistoryLike` protocol for you.
+
 To use this library you should know
 
-1. What frontend router is.
-2. How to use the [history](https://github.com/ReactTraining/history) package.
+1. What a frontend router is.
+2. How navigation / routing works in the framework(s) you use.
+   (No longer tied to the `history` package.)
 
 ## Why
+
 1. There are multiple sets of URIs in the real world.
 2. You may not able to decide what your URIs in a set should look like.
 3. URIs are shared resources among clients. (Considering browser Bookmarks or programs ships your URIs in their code)
@@ -16,130 +26,357 @@ To use this library you should know
 9. Do you want to keep the paths in the routes always clean?
 
 ## Solution
-Seperate different sets of URIs and connect them with others loosly, by following the desired rules.
+
+Separate different sets of URIs and connect them with others loosely, by following the desired rules.
+
+## Features
+
+- **Framework-agnostic core.** The core imports no framework; both sides are equal peers.
+- **Optional helpers** in `history-adaptor/helper` for React Router, Vue Router, Angular,
+  Solid and the browser (HTML5 + hash).
+- **Rule adaptor** (`createAdapt`) for declarative `from -> to` mapping with literal,
+  `:param`, `RegExp`, and RFC 6570 URI-template rules.
+- **`state` is passed through.** `push(path, state)` carries `state` to the target unchanged.
+- **`listen()` returns an unsubscribe function.**
 
 ## Installation
+
 ```bash
 npm install --save history-adaptor
 ```
 
+The helpers are structural and import no framework themselves, so install only the router
+packages you actually use (e.g. `react-router`, `vue-router`).
+
 ## How to use
 
-### 1. define mapping table (not required)
+### 1. define the mapping (adaptors)
+
+An adaptor maps one side's address to the other's. An `Adapt` is a function
+`(location) => To | undefined`; returning `undefined` stops propagation to that side.
+There are two ways to write one:
+
 ```javascript
-const rules = [
-    {from: {key: 'Portal', pattern: '/webapp/main/blog/home'}, to: {key: 'Blog', pattern: '/news'}},
-    {from: {key: 'Portal', pattern: '/webapp/main/blog'}, to: {key: 'Blog', pattern: '/main'}},
-    {from: {key: 'Portal', pattern: '/webapp/main/blog/tags'}, to: {key: 'B', pattern: '/tags'}},
-    {from: {key: 'Blog', pattern: '/news'}, to: {key: 'Portal', pattern: '/webapp/main/blog/home'}},
-    {from: {key: 'Blog', pattern: '/post/11'}, to: {key: 'Portal', pattern: '/webapp/main/blog/post?id=11'}},
-];
-```
+import {createAdapt} from 'history-adaptor/helper';
 
-### 2. create your own url mapping function (implement the logic by yourself)
-```javascript
-const createAdaptOf = sourceKey => location => {
-    const matched = rules
-        .filter(rule => {
-            if (rule.from.key === sourceKey) {
-                if (typeof location === 'string') {
-                    return rule.from.pattern === location;
-                }
-                return location.pathname && (rule.from.pattern === location.pathname);
-            }
-            return false;
-        })
-        .map(rule => rule.to.pattern);
+// (a) declarative rule table (covers most cases)
+const portalToBlog = createAdapt([
+    {from: '/webapp/main/blog', to: '/main'},
+    {from: '/webapp/main/blog/post/:id', to: '/post/:id'},
+]);
 
-    if (matched.length > 0) {
-        return matched[0];
-    }
-
+// (b) custom function for logic the rule table cannot express
+const blogToPortal = (location) => {
+    const pathname = typeof location === 'string' ? location : location.pathname;
+    if (pathname === '/main') return '/webapp/main/blog';
     return undefined;
 };
 ```
 
-### 3. connect the histories with your adapting function
+### 2. connect the histories with your adaptors
+
 ```javascript
-// I believe you don't want to connect multiple BrowserHistories, or multiple HashHistories with each other.
-// They munipulates the same thing -> The browser address bar.
-// You can, but you should not.
-import createBrowserHistory from 'history/createBrowserHistory';
-import createMemoryHistory from 'history/createMemoryHistory';
+// Both sides are equal. The order remains the same.
+// I believe you don't want to connect two histories that manipulate the same thing
+// (two browser histories, or a browser history and a hash history). You can, but you should not.
+// `reactRouter` below is a React Router data router, e.g. the result of `createMemoryRouter(routes)`.
 import {connect} from 'history-adaptor';
+import {fromBrowserNative, fromReactRouter} from 'history-adaptor/helper';
 
-const [portalHistory, blogHistory] = connect(          // The order remain the same.
-    [
-        {
-            key: 'Portal',                          // Define a key for your source history
-            history: [createBrowserHistory, {}],    // You can also provide a history instance instead of the array.
-            adaptors: [                             // Provide the targets to which your URIs adapting to.
-                {
-                    target: 'Blog',                 // Define a key for your target history
-                    adapt: createAdaptOf('Portal'), // fn: (location) => (location)
-                    // Pure function which accept a location-like object(or string) then return a new one.
-                    // See history.push(...) on the manual page of 'history' package.
-                },
-            ],
-        },
-        {
-            key: 'Blog',
-            history: [createMemoryHistory, {}],
-            adaptors: [
-                {
-                    target: 'Portal',
-                    adapt: createAdaptOf('Blog'),
-                },
-            ],
-        },
-        // You can provide more ones
-    ],
-);
+const [portalHistory, blogHistory] = connect([
+    {
+        key: 'Portal',
+        history: fromBrowserNative(),          // the real address bar (HTML5)
+        adaptors: [{target: 'Blog', adapt: portalToBlog}],
+    },
+    {
+        key: 'Blog',
+        history: fromReactRouter(reactRouter), // a React Router data router
+        adaptors: [{target: 'Portal', adapt: blogToPortal}],
+    },
+]);
 ```
 
-### 4. use the histories like you did it before
+### 3. use the histories like you did it before
+
 ```javascript
-history.push(...);
-history.replace(...);
-history.go(n);
-history.goForward();
-history.goBack();
-history.listen(...);
+portalHistory.push(...);
+portalHistory.replace(...);
+portalHistory.go(n);
+portalHistory.back();
+portalHistory.forward();
+portalHistory.listen(...);   // returns an unsubscribe function
 ```
-or
+
+## Helpers (`history-adaptor/helper`)
+
+| Helper | Description |
+|--------|-------------|
+| `adaptHistory(config)` | Turn any custom router-like source into a `HistoryLike`. |
+| `fromBrowserNative(options?)` | The browser address bar. `{hash: true}` for hash mode. |
+| `fromReactRouter(router)` | React Router data router (`createMemoryRouter`). |
+| `fromVueRouter(router, options?)` | Vue Router. |
+| `fromAngularRouter(router, location, options?)` | Angular's `Router` + `Location`. `go(n)` supports only `-1` / `1`. |
+| `fromSolidRouter(history, options?)` | Solid Router memory history (`createMemoryHistory()`), for `<MemoryRouter history={...}>`. |
+| `createReactRouterNavigator(history, options?)` | `HistoryLike` → React Router's low-level `<Router>` navigator. |
+| `initialVueLocation(location, options?)` | Address string to seed a Vue Router with. |
+| `createAdapt(rules)` | Build an `Adapt` from literal, `:param`, `RegExp`, or RFC 6570 URI-template rules. |
+
+Address strings are treated as **paths** by default. Pass `options.base` when a `to` value may
+be a relative path or a full URL; it is handed to `new URL(address, base)`.
+
+### Rule adaptor
+
+`createAdapt(rules)` turns a declarative rule table into an `Adapt`. Rules are evaluated
+in order and the first match wins; when nothing matches, the adaptor returns `undefined`, which
+stops propagation for that side. `from` accepts four shapes:
+
+Note: any `{` makes `from` an RFC 6570 URI template, so a path-to-regexp optional group such
+as `/user{/:id}` is not supported here — write it as `:param` or use a `RegExp` instead.
+
 ```javascript
-const Blog = (
-  <Router history={blogHistory}>
-    <div>
-      <nav>
-        <ul>
-          <li><Link to="/">Main</Link></li>
-          <li><Link to="/news">News</Link></li>
-          <li><Link to="/tags">Tags</Link></li>
-          <li><Link to="/post/11">One Post</Link></li>
-        </ul>
-      </nav>
+import {connect} from 'history-adaptor';
+import {createAdapt, fromBrowserNative, fromReactRouter} from 'history-adaptor/helper';
 
-      <Route exact path="/" component={Main}/>
-      <Route path="/news" component={News}/>
-      <Route path="/tags" component={Tags}/>
-      <Route path="/post/:id" component={Post}/>
-    </div>
-  </Router>
-);
+// Outer portal address -> nested address
+const rulesFromOuterToNested = [
+    // literal replacement
+    {from: '/portal/home', to: '/news'},
+    {from: '/portal/error/not_found', to: '/404'},
 
-const Portal = (
-  <Router history={portalHistory}>
-    <div>
-      <ul>
-        <li><Link to="/webpapp/main/home">Home</Link></li>
-        <li><Link to="/webpapp/main/blog">Blog Home</Link></li>
-      </ul>
+    // path-to-regexp (>= 8.4.0): pass :param through
+    {from: '/portal/discussion/:discussion_id', to: '/discussion/:discussion_id'},
+    {from: '/portal/user/:user_id', to: '/user/:user_id'},
 
-      <Route exact path="/webpapp/main/home" component={Home}/>
-      <Route path="/webpapp/main/blog" component={Blog}/>
-    </div>
-  </Router>
-);
+    // native RegExp + String.prototype.replace: query becomes path, $<name> groups
+    {
+        from: /^\/portal\/articles\?user_id=(?<user_id>[^&#]*)&category_id=(?<category_id>[^&#]*)&keyword=(?<keyword>[^&#]*)#(?<comments>[^#]*)$/,
+        to: '/user/$<user_id>/post?category=$<category_id>&keyword=$<keyword>#$<comments>',
+    },
 
+    // RFC 6570 URI template: pathname + query + fragment
+    {from: '/portal/friend{?user_id,group}{#hash}', to: '/user/{user_id}/friend{?group}{#hash}'},
+];
+
+// Nested address -> outer portal address
+const rulesFromNestedToOuter = [
+    {from: '/news', to: '/portal/home'},
+    {from: '/discussion/:discussion_id', to: '/portal/discussion/:discussion_id'},
+    {from: '/user/:user_id', to: '/portal/user/:user_id'},
+    {
+        from: /^\/user\/(?<user_id>[^/?#]+)\/post\?category=(?<category_id>[^&#]*)&keyword=(?<keyword>[^&#]*)#(?<comments>[^#]*)$/,
+        to: '/portal/articles?user_id=$<user_id>&category_id=$<category_id>&keyword=$<keyword>#$<comments>',
+    },
+    {from: '/user/{user_id}/friend{?group}{#hash}', to: '/portal/friend{?user_id,group}{#hash}'},
+];
+
+const [portalHistory, nestedHistory] = connect([
+    {
+        key: 'Portal',
+        history: fromBrowserNative(),          // the real address bar (HTML5)
+        adaptors: [{target: 'Nested', adapt: createAdapt(rulesFromOuterToNested)}],
+    },
+    {
+        key: 'Nested',
+        history: fromReactRouter(nestedRouter), // e.g. createMemoryRouter(routes)
+        adaptors: [{target: 'Portal', adapt: createAdapt(rulesFromNestedToOuter)}],
+    },
+]);
+```
+
+Dependency choice (weekly npm downloads, 2026-11-03..09): `path-to-regexp` ~315M (Express's
+matcher); `url-template` ~24M but expansion only; `@fedify/uri-template` ~14k but it is the
+focused implementation with both `match` and `expand` plus round-trip verification;
+`uri-template-router` ~5k. We use `path-to-regexp` for path patterns and
+`@fedify/uri-template` for RFC 6570. Query and address parsing use the native
+`URL`/`URLSearchParams`.
+
+The `HistoryLike` contract itself:
+
+```typescript
+type HistoryLike = {
+    readonly location: { pathname: string; search: string; hash: string; state?: unknown };
+    listen(listener: (location: Location, action: 'PUSH' | 'REPLACE' | 'POP') => void): () => void;
+    push(to, state?): void;
+    replace(to, state?): void;
+    go(delta: number): void;
+    back(): void;
+    forward(): void;
+    dispose?(): void;
+};
+```
+
+## Framework examples
+
+### React Router — Data Mode
+
+```tsx
+import {createMemoryRouter, RouterProvider} from 'react-router';
+import {connect} from 'history-adaptor';
+import {createAdapt, fromBrowserNative, fromReactRouter} from 'history-adaptor/helper';
+
+const router = createMemoryRouter([{path: '*', element: <App />}], {initialEntries: ['/main']});
+
+const reactToPortal = createAdapt([{from: '/main', to: '/webapp/main/react'}]);
+const portalToReact = createAdapt([{from: '/webapp/main/react', to: '/main'}]);
+
+const [react, portal] = connect([
+    {key: 'React', history: fromReactRouter(router), adaptors: [{target: 'Portal', adapt: reactToPortal}]},
+    {key: 'Portal', history: fromBrowserNative(), adaptors: [{target: 'React', adapt: portalToReact}]},
+]);
+
+root.render(<RouterProvider router={router} />);
+```
+
+### React Router — Declarative Mode
+
+```tsx
+import {useSyncExternalStore} from 'react';
+import {Router, Routes, Route, Link} from 'react-router';
+import {connect} from 'history-adaptor';
+import {createReactRouterNavigator} from 'history-adaptor/helper';
+
+const [react] = connect([
+    {key: 'React', history: /* a HistoryLike */, adaptors: [...]},
+    {key: 'Portal', history: fromBrowserNative(), adaptors: [...]},
+]);
+
+const Root = () => {
+    const location = useSyncExternalStore(
+        (cb) => react.listen(() => cb()),
+        () => react.location,
+    );
+    return (
+        <Router location={location} navigator={createReactRouterNavigator(react)}>
+            <nav><Link to="/news">News</Link></nav>
+            <Routes><Route path="/news" element={<News />} /></Routes>
+        </Router>
+    );
+};
+```
+
+### Vue Router
+
+```ts
+import {createMemoryHistory, createRouter} from 'vue-router';
+import {connect} from 'history-adaptor';
+import {createAdapt, fromBrowserNative, fromVueRouter, initialVueLocation} from 'history-adaptor/helper';
+
+const router = createRouter({history: createMemoryHistory(), routes});
+
+const vueToPortal = createAdapt([{from: '/main', to: '/webapp/main/vue'}]);
+const portalToVue = createAdapt([{from: '/webapp/main/vue', to: '/main'}]);
+
+const [vue, portal] = connect([
+    {key: 'Vue', history: fromVueRouter(router), adaptors: [{target: 'Portal', adapt: vueToPortal}]},
+    {key: 'Portal', history: fromBrowserNative(), adaptors: [{target: 'Vue', adapt: portalToVue}]},
+]);
+
+// Optional: seed Vue Router (it starts at "/") with the current shared address.
+await router.replace(initialVueLocation(/* shared location */));
+```
+
+### Angular (2+)
+
+```ts
+import {inject} from '@angular/core';
+import {Location} from '@angular/common';
+import {Router} from '@angular/router';
+import {connect} from 'history-adaptor';
+import {createAdapt, fromAngularRouter, fromBrowserNative} from 'history-adaptor/helper';
+
+// `inject()` must run in an injection context (constructor / field initializer).
+const router = inject(Router);
+const location = inject(Location);
+
+const angularToPortal = createAdapt([{from: '/main', to: '/webapp/main/angular'}]);
+const portalToAngular = createAdapt([{from: '/webapp/main/angular', to: '/main'}]);
+
+const [angular, portal] = connect([
+    {key: 'Angular', history: fromAngularRouter(router, location), adaptors: [{target: 'Portal', adapt: angularToPortal}]},
+    {key: 'Portal', history: fromBrowserNative(), adaptors: [{target: 'Angular', adapt: portalToAngular}]},
+]);
+```
+
+`fromAngularRouter` only mirrors `go(-1)` / `go(1)` (Angular's `Location.back()` /
+`forward()`); any other delta throws.
+
+### Solid Router
+
+```ts
+import {createMemoryHistory, MemoryRouter} from '@solidjs/router';
+import {connect} from 'history-adaptor';
+import {createAdapt, fromBrowserNative, fromSolidRouter} from 'history-adaptor/helper';
+
+const history = createMemoryHistory();
+
+const solidToPortal = createAdapt([{from: '/main', to: '/webapp/main/solid'}]);
+const portalToSolid = createAdapt([{from: '/webapp/main/solid', to: '/main'}]);
+
+const [solid, portal] = connect([
+    {key: 'Solid', history: fromSolidRouter(history), adaptors: [{target: 'Portal', adapt: solidToPortal}]},
+    {key: 'Portal', history: fromBrowserNative(), adaptors: [{target: 'Solid', adapt: portalToSolid}]},
+]);
+
+// Render with the same history: <MemoryRouter history={history}>...</MemoryRouter>
+```
+
+Solid's memory history does not store `state`, so state is not preserved on the Solid side.
+
+### Browser — HTML5 History
+
+```ts
+history: fromBrowserNative()
+```
+
+### Browser — hash
+
+```ts
+history: fromBrowserNative({hash: true})
+```
+
+### Custom router
+
+```ts
+history: adaptHistory({
+    getLocation: () => myLocation,
+    navigate: (to, {replace, state}) => myNavigate(to, replace, state),
+    subscribe: (listener) => mySubscribe(listener),
+    go: (delta) => myGo(delta),
+})
+```
+
+If `navigate` settles asynchronously, return its promise (`return myNavigate(...)`) so
+`adaptHistory` can label the resulting change correctly.
+
+## Peer to peer
+
+Both sides are equal and symmetric: there is no "authoritative" side. Each navigation is
+propagated one level to the other histories through the mapping rules, so circular rules
+(`A -> B -> A`) do not loop forever.
+
+Because a browser history and a hash history both own the same address bar, connecting them
+to each other is possible but meaningless in practice — pick at most one real address bar as
+a side.
+
+Known limitation: a back/forward that goes through the adaptor (`back()` / `forward()` /
+`go()`) is mirrored on every side, keeping the stacks in step. A back/forward that originates
+outside the adaptor — notably the browser's own Back/Forward buttons, which fire `popstate` —
+is reported as a `POP` and propagated to the other sides as a `push`. The destination stays
+correct, but the other sides gain a new history entry instead of moving through their own
+stack, so their stacks can drift from the browser's over time.
+
+## Examples
+
+Interactive examples live in a separate project: [`history-adaptor-example`](../history-adaptor-example).
+It covers a host/embedded setup across Vanilla JS, React Router, and Vue Router, and shows the
+actual source of every example in the UI. See that project's README for setup.
+
+## Development
+
+```bash
+pnpm install
+pnpm test        # integration tests against real React Router / Vue Router / Angular / Solid / browser history
+pnpm check       # lint + typecheck + tests (formatting is intentionally not part of check)
+pnpm format      # oxfmt: initial formatting for pasted third-party code (manual, not in check)
 ```
