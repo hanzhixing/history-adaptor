@@ -214,6 +214,8 @@ type HistoryLike = {
 
 ## Framework examples
 
+Interactive examples live in a separate project: [`history-adaptor-example`](https://github.com/hanzhixing/history-adaptor-example).
+
 ### React Router — Data Mode
 
 ```tsx
@@ -371,12 +373,6 @@ outside the adaptor — notably the browser's own Back/Forward buttons, which fi
 is reported as a `POP` and propagated to the other sides as a `push`. The destination stays
 correct, but the other sides gain a new history entry instead of moving through their own
 stack, so their stacks can drift from the browser's over time.
-
-## Examples
-
-Interactive examples live in a separate project: [`history-adaptor-example`](https://github.com/hanzhixing/history-adaptor-example).
-It covers a host/embedded setup across Vanilla JS, React Router, and Vue Router, and shows the
-actual source of every example in the UI. See that project's README for setup.
 
 ## Development
 
