@@ -374,7 +374,7 @@ stack, so their stacks can drift from the browser's over time.
 
 ## Examples
 
-Interactive examples live in a separate project: [`history-adaptor-example`](../history-adaptor-example).
+Interactive examples live in a separate project: [`history-adaptor-example`](https://github.com/hanzhixing/history-adaptor-example).
 It covers a host/embedded setup across Vanilla JS, React Router, and Vue Router, and shows the
 actual source of every example in the UI. See that project's README for setup.
 
