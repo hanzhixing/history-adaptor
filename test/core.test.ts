@@ -120,6 +120,46 @@ describe('connect (peer to peer)', () => {
         expect(pathOf(b)).toBe('/b2');
     });
 
+    it('supports go() and exposes the underlying location', async () => {
+        const {a, b, ha} = setup();
+
+        ha.push('/a1');
+        await flush();
+        ha.push('/a2');
+        await flush();
+
+        ha.go(-1);
+        await flush();
+        expect(pathOf(a)).toBe('/a1');
+        expect(pathOf(b)).toBe('/b1');
+
+        // Properties outside the navigation methods fall through to the raw history.
+        expect(ha.location.pathname).toBe('/a1');
+    });
+
+    it('only propagates to the matching target in a group with more than two sides', async () => {
+        const a = createReactHistory();
+        const b = createReactHistory();
+        const c = createReactHistory();
+
+        const [ha] = connect([
+            {
+                key: 'A',
+                history: a.history,
+                adaptors: [{target: 'B', adapt: createAdaptOf('A')}],
+            },
+            {key: 'B', history: b.history, adaptors: []},
+            {key: 'C', history: c.history, adaptors: []},
+        ]);
+
+        ha.push('/a1');
+        await flush();
+
+        expect(pathOf(b)).toBe('/b1');
+        // C is not an adaptor target, so it must stay untouched.
+        expect(pathOf(c)).toBe('/');
+    });
+
     it('returns a working unlisten function from listen()', async () => {
         const {ha} = setup();
         const spy = vi.fn();

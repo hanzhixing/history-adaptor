@@ -4,6 +4,7 @@ import {describe, expect, it, vi} from 'vitest';
 import {
     adaptHistory,
     createReactRouterNavigator,
+    fromAngularRouter,
     fromBrowserNative,
     getQueryObjectFromSearch,
     getSearchFromQueryObject,
@@ -29,6 +30,10 @@ describe('helper utilities', () => {
         expect(getQueryObjectFromSearch('?a=1&b=2&b=3')).toEqual({a: '1', b: ['2', '3']});
         expect(getSearchFromQueryObject({})).toBe('');
         expect(getQueryObjectFromSearch('')).toEqual({});
+
+        // Nullish values are skipped, and repeated keys accumulate.
+        expect(getSearchFromQueryObject({a: null, b: ['1', null, undefined]})).toBe('?b=1');
+        expect(getQueryObjectFromSearch('?a=1&a=2&a=3')).toEqual({a: ['1', '2', '3']});
     });
 
     it('createReactRouterNavigator builds href and encodeLocation', () => {
@@ -39,6 +44,39 @@ describe('helper utilities', () => {
             search: '?b=1',
             hash: '#c',
         });
+        // Absolute URLs are parsed without a base.
+        expect(createReactRouterNavigator(noopHistory).createHref('https://other.test/a?b=1#c')).toBe(
+            '/a?b=1#c',
+        );
+    });
+
+    it('normalizes empty paths and partial locations', () => {
+        const navigator = createReactRouterNavigator(noopHistory);
+        expect(navigator.createHref('?a=1')).toBe('/?a=1');
+        expect(navigator.createHref({})).toBe('/');
+        expect(navigator.encodeLocation({pathname: '/x'})).toEqual({
+            pathname: '/x',
+            search: '',
+            hash: '',
+        });
+    });
+
+    it('createReactRouterNavigator delegates navigation to the history', () => {
+        const history: HistoryLike = {
+            ...noopHistory,
+            push: vi.fn(),
+            replace: vi.fn(),
+            go: vi.fn(),
+        };
+        const navigator = createReactRouterNavigator(history);
+
+        navigator.push('/a', {token: 'abc'});
+        navigator.replace('/b');
+        navigator.go(-1);
+
+        expect(history.push).toHaveBeenCalledWith('/a', {token: 'abc'});
+        expect(history.replace).toHaveBeenCalledWith('/b', undefined);
+        expect(history.go).toHaveBeenCalledWith(-1);
     });
 
     it('resolves relative addresses against a user-provided base', () => {
@@ -63,17 +101,19 @@ describe('helper utilities', () => {
     it('adaptHistory dispose unsubscribes from the source', () => {
         let emit: (() => void) | undefined;
         let unsubscribed = false;
+        const navigate = vi.fn();
+        const go = vi.fn();
 
         const history = adaptHistory({
             getLocation: () => ({pathname: '/', search: '', hash: ''}),
-            navigate: () => {},
+            navigate,
             subscribe: (listener) => {
                 emit = listener;
                 return () => {
                     unsubscribed = true;
                 };
             },
-            go: () => {},
+            go,
         });
 
         const spy = vi.fn();
@@ -88,6 +128,15 @@ describe('helper utilities', () => {
         spy.mockClear();
         emit?.();
         expect(spy).not.toHaveBeenCalled();
+
+        // A disposed history is a no-op for every navigation method.
+        history.push('/x');
+        history.replace('/y');
+        history.go(1);
+        history.back();
+        history.forward();
+        expect(navigate).not.toHaveBeenCalled();
+        expect(go).not.toHaveBeenCalled();
     });
 
     it('resets the synthesized action when a navigation never emits', async () => {
@@ -113,6 +162,62 @@ describe('helper utilities', () => {
         // The stale PUSH must not leak into the next (external) emission.
         emit?.();
         expect(actions).toEqual(['POP']);
+    });
+
+    it('resets the synthesized action when a navigation rejects', async () => {
+        let emit: (() => void) | undefined;
+
+        const history = adaptHistory({
+            getLocation: () => ({pathname: '/', search: '', hash: ''}),
+            navigate: () => Promise.reject(new Error('cancelled')),
+            subscribe: (listener) => {
+                emit = listener;
+                return () => {};
+            },
+            go: () => {},
+        });
+
+        const actions: string[] = [];
+        history.listen((_location, action) => actions.push(action));
+
+        history.push('/nowhere');
+        await flush();
+
+        // A rejected navigation must also clear the pending PUSH.
+        emit?.();
+        expect(actions).toEqual(['POP']);
+    });
+
+    it('fromAngularRouter only reacts to NavigationEnd events', () => {
+        let emit: ((event: unknown) => void) | undefined;
+        const unsubscribe = vi.fn();
+
+        const history = fromAngularRouter(
+            {
+                events: {
+                    subscribe: (listener: (event: unknown) => void) => {
+                        emit = listener;
+                        return {unsubscribe};
+                    },
+                },
+                navigateByUrl: () => Promise.resolve(),
+            },
+            {path: () => '/', back: () => {}, forward: () => {}},
+        );
+
+        const spy = vi.fn();
+        history.listen(spy);
+
+        emit?.(null);
+        emit?.('not-an-event');
+        emit?.({type: 9});
+        expect(spy).not.toHaveBeenCalled();
+
+        emit?.({type: 1});
+        expect(spy).toHaveBeenCalledTimes(1);
+
+        history.dispose?.();
+        expect(unsubscribe).toHaveBeenCalledTimes(1);
     });
 });
 
@@ -243,6 +348,43 @@ describe('fromBrowserNative', () => {
             await flush();
             expect(spy).not.toHaveBeenCalled();
         } finally {
+            win.close();
+        }
+    });
+
+    it('throws when there is no browser environment', () => {
+        expect(() => fromBrowserNative()).toThrow(
+            '[history-adaptor] fromBrowserNative requires a browser environment',
+        );
+    });
+
+    it('falls back to the global window', () => {
+        const dom = new JSDOM('', {url: 'http://localhost/'});
+        const win = dom.window as unknown as Window;
+        vi.stubGlobal('window', win);
+
+        try {
+            const history = fromBrowserNative();
+            history.push('/global');
+            expect(win.location.pathname).toBe('/global');
+            history.dispose?.();
+        } finally {
+            vi.unstubAllGlobals();
+            win.close();
+        }
+    });
+
+    it('dispose removes the hashchange listener in hash mode', () => {
+        const dom = new JSDOM('', {url: 'http://localhost/'});
+        const win = dom.window as unknown as Window;
+        const history = fromBrowserNative({window: win, hash: true});
+        const remove = vi.spyOn(win, 'removeEventListener');
+
+        try {
+            history.dispose?.();
+            expect(remove).toHaveBeenCalledWith('hashchange', expect.any(Function));
+        } finally {
+            remove.mockRestore();
             win.close();
         }
     });
