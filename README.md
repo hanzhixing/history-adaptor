@@ -1,5 +1,11 @@
 # history-adaptor
 
+[![MIT License](https://img.shields.io/npm/l/history-adaptor.svg)](https://github.com/hanzhixing/history-adaptor/blob/master/LICENSE)
+[![npm version](https://img.shields.io/npm/v/history-adaptor.svg)](https://www.npmjs.com/package/history-adaptor)
+[![npm download](https://img.shields.io/npm/dt/history-adaptor.svg)](https://www.npmjs.com/package/history-adaptor)
+[![npm bundle size](https://img.shields.io/bundlephobia/minzip/history-adaptor.svg)](https://www.npmjs.com/package/history-adaptor)
+[![codecov](https://codecov.io/gh/hanzhixing/history-adaptor/branch/master/graph/badge.svg)](https://codecov.io/gh/hanzhixing/history-adaptor)
+
 A framework-agnostic adaptor that connects two routing systems with custom mapping rules.
 
 Any two of HTML5 History, hash history, React Router, Vue Router, Angular, Solid, or your own

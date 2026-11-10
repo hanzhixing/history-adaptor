@@ -57,6 +57,7 @@
         "build": "tsdown",
         "dev": "tsdown --watch",
         "test": "vitest run",
+        "test:coverage": "vitest run --coverage",
         "test:watch": "vitest",
         "typecheck": "tsc --noEmit",
         "lint": "oxlint",
@@ -77,6 +78,7 @@
         "@types/jsdom": "^30.0.0",
         "@types/node": "^26.6.6",
         "@types/react": "^19.3.0",
+        "@vitest/coverage-v8": "^5.1.0",
         "jsdom": "^31.0.0",
         "oxfmt": "^0.77.0",
         "oxlint": "^1.92.0",
@@ -94,6 +96,7 @@
     "engines": {
         "node": ">=22"
     },
+    "packageManager": "pnpm@12.15.0",
     "dependencies": {
         "@fedify/uri-template": "^2.4.5",
         "path-to-regexp": "^9.0.0"
