@@ -1,6 +1,6 @@
 {
     "name": "history-adaptor",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "description": "A framework-agnostic adaptor that connects two routing systems with custom mapping rules",
     "keywords": [
         "react",
